@@ -7,12 +7,11 @@ WORKDIR /opt/server
 COPY package.json .
 RUN npm install
 
-# Copy application source code into /opt/server
-COPY script.sh .
-COPY server.js .
+# Copy all JS files into /opt/server
+COPY *.js .
 
 # Environment variables
-ENV MONGO=true \
+ENV MONGO="true" \
     MONGO_URL="mongodb://mongodb:27017/catalogue"
 
 # Start the application
