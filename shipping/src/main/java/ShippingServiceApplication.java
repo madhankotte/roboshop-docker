@@ -1,76 +1,42 @@
-package com.instana.robotshop.shipping;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+package com.instana.robotshop.shipping; 
 import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.io.PrintWriter;
+import java.util.logging.Logger;
 
-import com.instana.sdk.support.SpanSupport;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+public class RetryableDataSource implements DataSource {
+    private final DataSource delegate;
 
-import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.config.BeanPostProcessor;
-import org.springframework.context.annotation.Bean;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
-import org.springframework.retry.annotation.EnableRetry;
-import org.springframework.web.servlet.config.annotation.EnableWebMvc;
-import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
-
-import java.util.Random;
-
-@SpringBootApplication
-@EnableRetry
-@EnableWebMvc
-public class ShippingServiceApplication implements WebMvcConfigurer {
-
-    private static final String[] DATA_CENTERS = {
-            "asia-northeast2",
-            "asia-south1",
-            "europe-west3",
-            "us-east1",
-            "us-west1"
-    };
-
-    public static void main(String[] args) {
-        SpringApplication.run(ShippingServiceApplication.class, args);
-    }
-
-    @Bean
-    public BeanPostProcessor dataSourceWrapper() {
-        return new DataSourcePostProcessor();
-    }
-
-    @Order(Ordered.HIGHEST_PRECEDENCE)
-    private static class DataSourcePostProcessor implements BeanPostProcessor {
-        @Override
-        public Object postProcessBeforeInitialization(Object bean, String name) throws BeansException {
-            if (bean instanceof DataSource) {
-                bean = new RetryableDataSource((DataSource)bean);
-            }
-            return bean;
-        }
-
-        @Override
-        public Object postProcessAfterInitialization(Object bean, String name) throws BeansException {
-            return bean;
-        }
+    public RetryableDataSource(DataSource delegate) {
+        this.delegate = delegate;
     }
 
     @Override
-    public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new InstanaDatacenterTagInterceptor());
-    }
-
-    private static class InstanaDatacenterTagInterceptor extends HandlerInterceptorAdapter {
-        @Override
-        public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-
-            SpanSupport.annotate("datacenter", DATA_CENTERS[new Random().nextInt(DATA_CENTERS.length)]);
-
-            return super.preHandle(request, response, handler);
+    public Connection getConnection() throws SQLException {
+        int retries = 3;
+        SQLException lastException = null;
+        for (int i = 0; i < retries; i++) {
+            try {
+                return delegate.getConnection();
+            } catch (SQLException e) {
+                lastException = e;
+                try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
+            }
         }
+        throw lastException;
     }
+
+    @Override
+    public Connection getConnection(String username, String password) throws SQLException {
+        return delegate.getConnection(username, password);
+    }
+
+    @Override public <T> T unwrap(Class<T> iface) throws SQLException { return delegate.unwrap(iface); }
+    @Override public boolean isWrapperFor(Class<?> iface) throws SQLException { return delegate.isWrapperFor(iface); }
+    @Override public PrintWriter getLogWriter() throws SQLException { return delegate.getLogWriter(); }
+    @Override public void setLogWriter(PrintWriter out) throws SQLException { delegate.setLogWriter(out); }
+    @Override public void setLoginTimeout(int seconds) throws SQLException { delegate.setLoginTimeout(seconds); }
+    @Override public int getLoginTimeout() throws SQLException { return delegate.getLoginTimeout(); }
+    @Override public Logger getParentLogger() { return delegate.getParentLogger(); }
 }
