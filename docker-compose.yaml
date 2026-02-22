@@ -34,28 +34,28 @@ services:
       RABBITMQ_DEFAULT_PASS: roboshop123
   user:
     build: ./user
-    image: joindevops/user:v1
+    image: madhankotte/user:v1
     container_name: user
     depends_on:
     - mongodb
     - redis
   cart:
     build: ./cart
-    image: joindevops/cart:v1
+    image: madhankotte/cart:v1
     container_name: cart
     depends_on:
     - redis
     - catalogue
   shipping:
     build: ./shipping
-    image: joindevops/shipping:v1
+    image: madhankotte/shipping:v1
     container_name: shipping
     depends_on:
     - mysql
     - cart
   payment:
     build: ./payment
-    image: joindevops/payment:v1
+    image: madhankotte/payment:v1
     container_name: payment
     depends_on:
     - rabbitmq
@@ -63,7 +63,7 @@ services:
     - user
   frontend:
     build: ./frontend
-    image: joindevops/frontend:v1
+    image: madhankotte/frontend:v1
     container_name: frontend
     ports:
     - "80:80"
