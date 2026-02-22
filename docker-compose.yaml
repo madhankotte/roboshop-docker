@@ -1,6 +1,6 @@
 services:
   catalogue:
-    image: ./catalogue:v1
+    image: ./catalogue
     container_name: catalogue
     depends_on:
       - mongodb
