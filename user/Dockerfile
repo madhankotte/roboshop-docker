@@ -16,4 +16,4 @@ ENV MONGO="true" \
     MONGO_URL="mongodb://mongodb:27017/user"
 COPY --from=build --chown=roboshop:roboshop /opt/server /opt/server
 USER roboshop
-CMD ["node", "server.js"]
+CMD ["node", "index.js"]
