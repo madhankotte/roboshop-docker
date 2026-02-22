@@ -17,5 +17,3 @@ ENV MONGO="true" \
 COPY --from=build --chown=roboshop:roboshop /opt/server /opt/server
 USER roboshop
 CMD ["node", "server.js"]
-# FROM node:20
-# WORKDIR /opt/server
